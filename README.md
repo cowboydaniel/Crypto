@@ -15,8 +15,8 @@ A CPU-minable cryptocurrency with **physical coin files** stored on your hard dr
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-repo/cpucoin.git
-cd cpucoin
+git clone https://github.com/cowboydaniel/Crypto.git
+cd Crypto
 
 # Install dependencies
 pip install -r requirements.txt
