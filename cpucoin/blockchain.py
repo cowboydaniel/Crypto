@@ -184,11 +184,11 @@ class Blockchain:
 
     def calculate_difficulty(self) -> int:
         """
-        Adjust mining difficulty based on block times.
-
-        If blocks are being mined too fast, increase difficulty.
-        If blocks are being mined too slow, decrease difficulty.
+        Returns fixed difficulty (no adjustment).
         """
+        return config.INITIAL_DIFFICULTY  # Always use initial difficulty
+
+        # --- Original dynamic adjustment (disabled) ---
         if len(self.chain) < config.DIFFICULTY_ADJUSTMENT_INTERVAL + 1:
             return self.difficulty
 
