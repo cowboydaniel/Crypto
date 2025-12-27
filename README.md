@@ -25,7 +25,7 @@ cpucoin mine --wallet mywallet --threads 4
 
 Check the network status anytime:
 ```bash
-curl http://34.55.10.86:8080/status
+curl http://34.41.230.112:8080/status
 ```
 
 ---
