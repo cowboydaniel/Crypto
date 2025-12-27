@@ -207,6 +207,19 @@ class Block:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Block':
         """Create a Block from dictionary."""
+        # Handle legacy format (single 'difficulty' field)
+        if 'difficulty' in data and 'share_difficulty' not in data:
+            legacy_diff = data.pop('difficulty')
+            data['share_difficulty'] = legacy_diff
+            data['block_difficulty'] = legacy_diff + config.BLOCK_DIFFICULTY_OFFSET
+
+        # Ensure new fields have defaults for old blocks
+        data.setdefault('claimed_shares', [])
+        data.setdefault('share_claims', [])
+        data.setdefault('is_closed', True)  # Old blocks are always closed
+        data.setdefault('block_finder_hash', data.get('hash', ''))
+        data.setdefault('opened_at', data.get('timestamp', 0))
+
         return cls(**data)
 
     def __repr__(self) -> str:
@@ -608,8 +621,16 @@ class Blockchain:
         """Create a Blockchain from dictionary."""
         blockchain = cls.__new__(cls)
         blockchain.chain = [Block.from_dict(b) for b in data['chain']]
-        blockchain.share_difficulty = data.get('share_difficulty', config.INITIAL_SHARE_DIFFICULTY)
-        blockchain.block_difficulty = data.get('block_difficulty', config.INITIAL_BLOCK_DIFFICULTY)
+
+        # Handle legacy format (single 'difficulty' field)
+        if 'difficulty' in data and 'share_difficulty' not in data:
+            legacy_diff = data.get('difficulty', config.INITIAL_SHARE_DIFFICULTY)
+            blockchain.share_difficulty = legacy_diff
+            blockchain.block_difficulty = legacy_diff + config.BLOCK_DIFFICULTY_OFFSET
+        else:
+            blockchain.share_difficulty = data.get('share_difficulty', config.INITIAL_SHARE_DIFFICULTY)
+            blockchain.block_difficulty = data.get('block_difficulty', config.INITIAL_BLOCK_DIFFICULTY)
+
         blockchain.pending_transactions = data.get('pending_transactions', [])
 
         # Load current open block if present
