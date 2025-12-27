@@ -32,7 +32,7 @@ cpucoin server info http://34.41.230.112:8333
 
 CPUCoin uses a **Block Shares** mining system:
 
-- Each block contains **100 shares** (coinlets) worth **0.5 CPU each**
+- Each block contains **1000 shares** (coinlets) worth **~2.38095238 CPU each** initially (value halves alongside block reward)
 - Multiple miners can earn shares from the same block
 - Finding a **full block** (harder difficulty) awards all remaining shares as bonus
 - Share difficulty: ~30-50 seconds per share
@@ -102,7 +102,7 @@ cpucoin send <recipient_public_key> 10.0 --wallet mywallet
 Each mined share is stored as a physical file in `~/.cpucoin/coins/`. The files contain:
 
 - Unique coin ID
-- Value (0.5 CPU per share)
+- Value (~2.38095238 CPU per share initially; halves with block reward)
 - Owner's public key
 - Mining proof (nonce, hash, difficulty)
 - Share index and block info
@@ -112,7 +112,7 @@ Example coin file structure:
 ```json
 {
   "coin_id": "COIN-a1b2c3d4e5f6...",
-  "value": 0.5,
+  "value": 2.38095238,
   "owner_pubkey": "04abc123...",
   "created_at": 1703548800,
   "block_height": 42,
@@ -214,9 +214,8 @@ CPUCoin uses **Argon2id** for proof-of-work, which is:
 
 ### Block Reward
 
-- Total reward: 50 CPU per block
-- Distributed as: 100 shares x 0.5 CPU each
-- Halving: Every 210,000 blocks
+- Total reward: 2380.95238095 CPU per block initially (halves every 210,000 blocks; total supply hard-capped at 1,000,000,000 CPU)
+- Distributed as: 1000 shares x ~2.38095238 CPU each initially (share value halves with block reward)
 
 ## File Locations
 

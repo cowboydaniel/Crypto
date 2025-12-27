@@ -3,7 +3,7 @@
 CPUCoin Command Line Interface
 
 Block Shares Mining System:
-- Each block contains 100 shares (coinlets) worth 0.5 CPU each
+- Each block contains 1000 shares (coinlets) worth ~2.38095238 CPU each initially
 - Mine individual shares quickly, or find full blocks for bonus shares
 - Full blocks take ~15 minutes on powerful CPUs
 
