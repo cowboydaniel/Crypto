@@ -51,7 +51,7 @@ class MiningClient:
     Client for connecting to a CPUCoin mining server.
 
     Usage:
-        client = MiningClient("http://localhost:8335")
+        client = MiningClient("http://localhost:8333")
         template = client.get_current_block()
 
         # Mine until we find a valid hash
@@ -72,7 +72,7 @@ class MiningClient:
         Initialize the mining client.
 
         Args:
-            server_url: URL of the mining server (e.g., "http://localhost:8335")
+            server_url: URL of the mining server (e.g., "http://localhost:8333")
             timeout: Request timeout in seconds
         """
         self.server_url = server_url.rstrip('/')
