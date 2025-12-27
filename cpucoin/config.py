@@ -28,12 +28,15 @@ DIFFICULTY_ADJUSTMENT_INTERVAL = 10
 
 # Initial difficulties (measured in leading zero bits)
 # Block difficulty is much harder than share difficulty
-INITIAL_SHARE_DIFFICULTY = 4   # Easier - find individual shares
-INITIAL_BLOCK_DIFFICULTY = 12  # Much harder - find full block (closes block, bonus shares)
+# With Argon2 at ~20-40 H/s per 4 threads:
+#   - Difficulty 10 = ~1024 hashes = ~30-50 seconds per share
+#   - Difficulty 17 = ~131K hashes = ~1-2 hours on 4 threads, ~15 min on 32 threads
+INITIAL_SHARE_DIFFICULTY = 10  # ~1024 hashes avg, ~30-50 sec per share (4 threads)
+INITIAL_BLOCK_DIFFICULTY = 17  # ~131K hashes avg, ~15 min on 32 threads
 
 # Difficulty multiplier: block difficulty = share difficulty + this offset
 # This ensures finding a full block is much rarer than finding shares
-BLOCK_DIFFICULTY_OFFSET = 8
+BLOCK_DIFFICULTY_OFFSET = 7
 
 # =============================================================================
 # ARGON2 PARAMETERS (CPU-friendly, memory-hard)
