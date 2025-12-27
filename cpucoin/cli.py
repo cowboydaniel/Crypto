@@ -19,8 +19,13 @@ Usage:
     cpucoin coins export <coin_id> <filepath>
     cpucoin coins import <filepath>
     cpucoin blockchain info
+    cpucoin server start [--port=<port>]
+    cpucoin server info <url>
     cpucoin node start [--port=<port>]
     cpucoin node connect <host:port>
+
+Server-based Mining (recommended for multi-user):
+    cpucoin mine --server http://your-server:8335 --shares 10
 """
 
 import os
@@ -36,6 +41,8 @@ from cpucoin.blockchain import Blockchain
 from cpucoin.wallet import Wallet, list_wallets, DEFAULT_WALLET_DIR
 from cpucoin.coin import Coin, CoinStore, DEFAULT_COIN_DIR
 from cpucoin.miner import ShareMiner, MultiThreadedShareMiner, quick_mine
+from cpucoin.mining_client import MiningClient, ServerShareMiner
+from cpucoin.server import run_server
 from cpucoin.node import Node
 from cpucoin import config
 
@@ -66,6 +73,7 @@ def cmd_mine(args):
     password = args.password or ""
     num_shares = args.shares or 0
     num_threads = args.threads or 0
+    server_url = args.server
 
     # Load or create wallet
     if wallet_name in list_wallets():
@@ -84,7 +92,11 @@ def cmd_mine(args):
     print(f"📍 Address: {wallet.address}")
     print(f"💰 Current balance: {wallet.get_balance():.8f} CPU")
 
-    # Load blockchain
+    # Server-based mining
+    if server_url:
+        return cmd_mine_server(wallet, server_url, num_shares)
+
+    # Local mining (legacy mode)
     blockchain_path = os.path.expanduser("~/.cpucoin/blockchain.json")
     if os.path.exists(blockchain_path):
         blockchain = Blockchain.load(blockchain_path)
@@ -133,6 +145,53 @@ def cmd_mine(args):
         print("\n\n⏹️  Mining stopped by user")
         miner.stop()
         blockchain.save(blockchain_path)
+
+    return 0
+
+
+def cmd_mine_server(wallet, server_url: str, num_shares: int):
+    """Mine shares using a remote server."""
+    print(f"\n🌐 Connecting to server: {server_url}")
+
+    # Check server connection
+    client = MiningClient(server_url)
+    info = client.get_server_info()
+
+    if not info:
+        print(f"❌ Failed to connect to server: {client.last_error}")
+        return 1
+
+    print(f"✅ Connected to {info.get('name', 'CPUCoin Server')}")
+    print(f"   Blockchain height: {info.get('blockchain_height', 0)}")
+    print(f"   Share difficulty: {info.get('share_difficulty', 0)}")
+    print(f"   Block difficulty: {info.get('block_difficulty', 0)}")
+    print(f"   Share value: {info.get('share_value', 0):.8f} CPU")
+
+    # Create server-connected miner
+    miner = ServerShareMiner(wallet, server_url)
+
+    try:
+        if num_shares > 0:
+            print(f"\n⛏️  Mining {num_shares} share(s)...\n")
+        else:
+            print(f"\n⛏️  Mining continuously (Ctrl+C to stop)...\n")
+
+        results = miner.mine_continuous(num_shares=num_shares, verbose=True)
+
+        # Summary
+        successful = [r for r in results if r.success]
+        blocks_found = sum(1 for r in successful if r.is_block_find)
+        bonus_shares = sum(r.bonus_shares for r in successful)
+
+        print(f"\n📊 Session Summary:")
+        print(f"   Shares mined: {len(successful)}")
+        print(f"   Blocks found: {blocks_found}")
+        print(f"   Bonus shares: {bonus_shares}")
+        print(f"   Wallet balance: {wallet.get_balance():.8f} CPU")
+
+    except KeyboardInterrupt:
+        print("\n\n⏹️  Mining stopped by user")
+        miner.stop()
 
     return 0
 
@@ -395,6 +454,52 @@ def cmd_blockchain_info(args):
     return 0
 
 
+def cmd_server_start(args):
+    """Start the mining server."""
+    port = args.port or 8335
+    host = args.host or "0.0.0.0"
+
+    print_header()
+    run_server(host=host, port=port)
+    return 0
+
+
+def cmd_server_info(args):
+    """Show mining server information."""
+    server_url = args.url
+
+    client = MiningClient(server_url)
+    info = client.get_blockchain_info()
+
+    if not info:
+        print(f"❌ Failed to connect to server: {client.last_error}")
+        return 1
+
+    print(f"\n🌐 Server: {server_url}")
+    print("-" * 40)
+    print(f"  Height: {info.get('height', 0)}")
+    print(f"  Share difficulty: {info.get('share_difficulty', 0)}")
+    print(f"  Block difficulty: {info.get('block_difficulty', 0)}")
+    print(f"  Block reward: {info.get('block_reward', 0):.8f} CPU")
+    print(f"  Share value: {info.get('share_value', 0):.8f} CPU")
+    print(f"  Shares per block: {info.get('shares_per_block', 0)}")
+
+    open_block = info.get('current_open_block')
+    if open_block:
+        print(f"\n🔓 Current Open Block #{open_block.get('index', 0)}:")
+        print(f"  Shares claimed: {open_block.get('shares_claimed', 0)}/{info.get('shares_per_block', 100)}")
+        print(f"  Shares remaining: {open_block.get('shares_remaining', 0)}")
+
+    recent = info.get('recent_blocks', [])
+    if recent:
+        print(f"\n📋 Recent Blocks:")
+        for block in recent:
+            status = "CLOSED" if block.get('is_closed') else "OPEN"
+            print(f"  #{block.get('index')}: {block.get('hash', '?')} (shares: {block.get('shares', 0)}, {status})")
+
+    return 0
+
+
 def cmd_node_start(args):
     """Start a network node."""
     port = args.port or config.DEFAULT_PORT
@@ -455,6 +560,8 @@ def main():
                             help='Wallet password')
     mine_parser.add_argument('--threads', '-t', type=int, default=1,
                             help='Number of mining threads')
+    mine_parser.add_argument('--server', type=str, default=None,
+                            help='Mining server URL (e.g., http://localhost:8335)')
 
     # Wallet commands
     wallet_parser = subparsers.add_parser('wallet', help='Wallet commands')
@@ -509,6 +616,19 @@ def main():
     blockchain_sub = blockchain_parser.add_subparsers(dest='blockchain_cmd')
     blockchain_sub.add_parser('info', help='Show blockchain info')
 
+    # Server commands
+    server_parser = subparsers.add_parser('server', help='Mining server commands')
+    server_sub = server_parser.add_subparsers(dest='server_cmd')
+
+    server_start_parser = server_sub.add_parser('start', help='Start mining server')
+    server_start_parser.add_argument('--port', '-p', type=int, default=8335,
+                                     help='Port to listen on (default: 8335)')
+    server_start_parser.add_argument('--host', type=str, default='0.0.0.0',
+                                     help='Host to bind to (default: 0.0.0.0)')
+
+    server_info_parser = server_sub.add_parser('info', help='Show server info')
+    server_info_parser.add_argument('url', help='Server URL (e.g., http://localhost:8335)')
+
     # Node commands
     node_parser = subparsers.add_parser('node', help='Network node commands')
     node_sub = node_parser.add_subparsers(dest='node_cmd')
@@ -553,6 +673,13 @@ def main():
             return cmd_blockchain_info(args)
         else:
             blockchain_parser.print_help()
+    elif args.command == 'server':
+        if args.server_cmd == 'start':
+            return cmd_server_start(args)
+        elif args.server_cmd == 'info':
+            return cmd_server_info(args)
+        else:
+            server_parser.print_help()
     elif args.command == 'node':
         if args.node_cmd == 'start':
             return cmd_node_start(args)
