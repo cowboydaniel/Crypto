@@ -304,9 +304,49 @@ class Blockchain:
         if height is None:
             height = self.height + 1
 
+        # Calculate how many coins have been issued so far (up to previous block)
+        issued = self._total_block_reward_up_to(height - 1)
+        remaining = max(config.MAX_SUPPLY - issued, 0.0)
+        if remaining <= 0:
+            return 0.0
+
         halvings = height // config.HALVING_INTERVAL
         reward = config.BLOCK_REWARD / (2 ** halvings)
-        return reward
+
+        # Never exceed the remaining supply
+        return min(reward, remaining)
+
+    def _total_block_reward_up_to(self, height: int) -> float:
+        """
+        Calculate total block rewards issued up to a given height (inclusive).
+
+        Args:
+            height: Block height to sum rewards through (0-based; 0 = genesis)
+
+        Returns:
+            Total rewards issued up to the specified height, capped at MAX_SUPPLY.
+        """
+        if height <= 0:
+            return 0.0
+
+        total = 0.0
+        remaining_blocks = height
+        era = 0
+
+        while remaining_blocks > 0 and total < config.MAX_SUPPLY:
+            blocks_this_era = min(config.HALVING_INTERVAL, remaining_blocks)
+            era_reward = config.BLOCK_REWARD / (2 ** era)
+            total += era_reward * blocks_this_era
+            remaining_blocks -= blocks_this_era
+            era += 1
+
+        return min(total, config.MAX_SUPPLY)
+
+    def get_total_issued(self) -> float:
+        """
+        Return total coins issued so far.
+        """
+        return self._total_block_reward_up_to(self.height)
 
     def calculate_difficulty(self) -> tuple:
         """

@@ -13,7 +13,7 @@ Block Shares System:
 # =============================================================================
 
 # Number of shares (coinlets) per block
-SHARES_PER_BLOCK = 100
+SHARES_PER_BLOCK = 1000
 
 # Target time for a FULL BLOCK to be mined (on a powerful 32-thread CPU)
 # Individual shares will be found much faster
@@ -52,11 +52,12 @@ ARGON2_HASH_LEN = 32  # Output hash length
 # =============================================================================
 
 MAX_TRANSACTIONS_PER_BLOCK = 100
-BLOCK_REWARD = 50.0  # Total block reward (distributed across shares)
+BLOCK_REWARD = 2380.95238095  # Total block reward (distributed across shares)
 HALVING_INTERVAL = 210000  # Halve reward every N blocks
+MAX_SUPPLY = 1_000_000_000  # Hard cap on total coin supply
 
-# Derived values
-SHARE_VALUE = BLOCK_REWARD / SHARES_PER_BLOCK  # Value per share (0.5 CPU)
+# Derived values (initial values - rewards halve over time)
+SHARE_VALUE = BLOCK_REWARD / SHARES_PER_BLOCK  # Initial value per share
 
 # Block finder bonus: percentage of remaining unclaimed shares
 # When someone finds the full block hash, they get this % of unclaimed shares
