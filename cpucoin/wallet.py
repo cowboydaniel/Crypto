@@ -250,6 +250,38 @@ class Wallet:
             include_spent=include_spent
         )
 
+    def add_coin(self, coin_id: str, source_dir: Optional[str] = None) -> bool:
+        """Ensure a coin is tracked by this wallet.
+
+        The mining client mints coin files on disk. This helper verifies the
+        coin exists in the wallet's coin directory and attempts to import it
+        from a source directory (or the default store) if missing.
+
+        Args:
+            coin_id: ID of the coin to add
+            source_dir: Optional directory to import the coin from
+
+        Returns:
+            True if the coin is available in the wallet store, False otherwise
+        """
+        # Already present
+        if self.coin_store.get_coin(coin_id):
+            return True
+
+        # Try importing from the provided source directory or the default
+        search_dirs = []
+        if source_dir:
+            search_dirs.append(source_dir)
+        if self.coin_dir != DEFAULT_COIN_DIR:
+            search_dirs.append(DEFAULT_COIN_DIR)
+
+        for directory in search_dirs:
+            candidate = os.path.join(directory, f"{coin_id}{Coin.EXTENSION}")
+            if os.path.exists(candidate):
+                return self.coin_store.import_coin(candidate) is not None
+
+        return False
+
     def send(self, recipient_pubkey: str, amount: float) -> Optional[List[Coin]]:
         """
         Send coins to another wallet.
