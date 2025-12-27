@@ -2,6 +2,34 @@
 
 A CPU-minable cryptocurrency with **physical coin files** stored on your hard drive.
 
+## Start Mining Now
+
+Connect to the official CPUCoin network and start mining in minutes:
+
+```bash
+# 1. Clone and install
+git clone https://github.com/cowboydaniel/Crypto.git
+cd Crypto
+pip install -e .
+
+# 2. Create your wallet
+cpucoin wallet create mywallet
+
+# 3. Connect to the network and start mining
+cpucoin node connect 34.55.10.86:8333
+cpucoin mine --wallet mywallet --threads 4
+```
+
+**Central Server:** `34.55.10.86:8333`
+**Server API:** `http://34.55.10.86:8080/status`
+
+Check the network status anytime:
+```bash
+curl http://34.55.10.86:8080/status
+```
+
+---
+
 ## Features
 
 - **CPU-Friendly Mining**: Uses Argon2 (memory-hard) algorithm that favors CPUs over GPUs/ASICs
