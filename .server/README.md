@@ -7,14 +7,21 @@ This document explains how to run and manage the CPUCoin mining server.
 ```bash
 cd /path/to/Crypto
 
-# Start the server
-python -c "from cpucoin.cli import main; main()" server start --port 8335
+# Start the server with nohup (runs in background, survives logout)
+nohup python -c "from cpucoin.cli import main; main()" server start --port 8335 > server.log 2>&1 &
+
+# Check it's running
+curl http://localhost:8335/
+
+# View logs
+tail -f server.log
 ```
 
 The server will:
 - Listen on `0.0.0.0:8335` by default
 - Store blockchain in `~/.cpucoin-server/blockchain.json`
 - Accept share submissions from miners
+- Keep running after you close the terminal
 
 ## Server Endpoints
 
@@ -108,6 +115,26 @@ Response (block found!):
 ```
 
 ## Running in Production
+
+### Using nohup (simplest)
+
+```bash
+cd /path/to/Crypto
+
+# Start server in background
+nohup python -c "from cpucoin.cli import main; main()" server start --port 8335 > server.log 2>&1 &
+
+# Save the PID for later
+echo $! > server.pid
+
+# Stop the server
+kill $(cat server.pid)
+
+# Restart
+kill $(cat server.pid) 2>/dev/null
+nohup python -c "from cpucoin.cli import main; main()" server start --port 8335 > server.log 2>&1 &
+echo $! > server.pid
+```
 
 ### Using systemd
 
