@@ -18,7 +18,7 @@ tail -f server.log
 ```
 
 The server will:
-- Listen on `0.0.0.0:8335` by default
+- Listen on `0.0.0.0:8333` by default
 - Store blockchain in `~/.cpucoin-server/blockchain.json`
 - Accept share submissions from miners
 - Keep running after you close the terminal
@@ -38,7 +38,7 @@ The server will:
 
 ### Get Server Info
 ```bash
-curl http://localhost:8335/
+curl http://localhost:8333/
 ```
 
 Response:
@@ -56,7 +56,7 @@ Response:
 
 ### Get Current Block
 ```bash
-curl http://localhost:8335/block/current
+curl http://localhost:8333/block/current
 ```
 
 Response:
@@ -75,7 +75,7 @@ Response:
 
 ### Submit a Share
 ```bash
-curl -X POST http://localhost:8335/share/submit \
+curl -X POST http://localhost:8333/share/submit \
   -H "Content-Type: application/json" \
   -d '{
     "miner_pubkey": "04abc123...",
@@ -168,7 +168,7 @@ sudo systemctl status cpucoin-server
 
 ```bash
 screen -S cpucoin-server
-python -c "from cpucoin.cli import main; main()" server start --port 8335
+python -c "from cpucoin.cli import main; main()" server start --port 8333
 # Press Ctrl+A, D to detach
 ```
 
