@@ -8,7 +8,7 @@ This document explains how to run and manage the CPUCoin mining server.
 cd /path/to/Crypto
 
 # Start the server with nohup (runs in background, survives logout)
-nohup python -c "from cpucoin.cli import main; main()" server start --port 8333 > server.log 2>&1 &
+nohup python3 -c "from cpucoin.cli import main; main()" server start --port 8333 > server.log 2>&1 &
 
 # Check it's running
 curl http://localhost:8333/
