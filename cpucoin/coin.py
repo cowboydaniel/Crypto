@@ -27,9 +27,10 @@ DEFAULT_COIN_DIR = os.path.expanduser("~/.cpucoin/coins")
 @dataclass
 class CoinData:
     """
-    Data structure representing a coin stored on disk.
+    Data structure representing a coin (share) stored on disk.
 
     Each coin file contains this data serialized as JSON.
+    In the block shares system, each coin represents a "share" of a block.
     """
     coin_id: str                          # Unique identifier (UUID + hash)
     value: float                          # Coin value/denomination
@@ -41,7 +42,13 @@ class CoinData:
     signature: str = ""                   # Owner's signature on current state
     parent_coins: List[str] = field(default_factory=list)  # For split/combine
     is_spent: bool = False                # Whether coin has been transferred
-    version: int = 1                      # Format version
+    version: int = 2                      # Format version (2 = shares system)
+
+    # Block shares system fields
+    share_index: int = 0                  # Which share slot in the block (0-99)
+    block_hash: str = ""                  # Hash of the block this share belongs to
+    is_block_finder: bool = False         # True if this miner found the full block
+    is_bonus_share: bool = False          # True if this was a bonus share (block finder reward)
 
     def compute_hash(self) -> str:
         """Compute unique hash of this coin's data."""
@@ -53,7 +60,11 @@ class CoinData:
             'block_height': self.block_height,
             'mining_proof': self.mining_proof,
             'history': self.history,
-            'parent_coins': self.parent_coins
+            'parent_coins': self.parent_coins,
+            'share_index': self.share_index,
+            'block_hash': self.block_hash,
+            'is_block_finder': self.is_block_finder,
+            'is_bonus_share': self.is_bonus_share
         }
         return double_sha256(json.dumps(data, sort_keys=True))
 
@@ -105,21 +116,35 @@ class Coin:
 
     @classmethod
     def mint(cls, owner_pubkey: str, value: float, block_height: int,
-             mining_proof: Dict[str, Any], coin_dir: str = DEFAULT_COIN_DIR) -> 'Coin':
+             mining_proof: Dict[str, Any], coin_dir: str = DEFAULT_COIN_DIR,
+             share_index: int = 0, block_hash: str = "",
+             is_block_finder: bool = False, is_bonus_share: bool = False) -> 'Coin':
         """
-        Mint a new coin (called when mining is successful).
+        Mint a new coin/share (called when mining is successful).
 
         Args:
             owner_pubkey: Public key of the miner
-            value: Value of the coin (block reward)
+            value: Value of the coin (share value or block reward)
             block_height: Current block height
             mining_proof: Dictionary with nonce, hash, difficulty
             coin_dir: Directory to store the coin file
+            share_index: Which share slot this is (0-99 for normal shares)
+            block_hash: Hash of the block this share belongs to
+            is_block_finder: True if this miner found the full block
+            is_bonus_share: True if this is a bonus share from block finding
 
         Returns:
             The newly minted Coin
         """
         coin_id = cls.generate_coin_id(owner_pubkey, block_height, mining_proof.get('nonce', 0))
+
+        # Determine action type for history
+        if is_bonus_share:
+            action = 'block_bonus'
+        elif is_block_finder:
+            action = 'block_find'
+        else:
+            action = 'share_mint'
 
         data = CoinData(
             coin_id=coin_id,
@@ -128,12 +153,17 @@ class Coin:
             created_at=time.time(),
             block_height=block_height,
             mining_proof=mining_proof,
+            share_index=share_index,
+            block_hash=block_hash,
+            is_block_finder=is_block_finder,
+            is_bonus_share=is_bonus_share,
             history=[{
-                'action': 'mint',
+                'action': action,
                 'timestamp': time.time(),
                 'owner': owner_pubkey,
                 'value': value,
-                'block_height': block_height
+                'block_height': block_height,
+                'share_index': share_index
             }]
         )
 
@@ -372,16 +402,30 @@ class Coin:
 
     def get_info(self) -> Dict[str, Any]:
         """Get human-readable coin information."""
-        return {
+        info = {
             'Coin ID': self.coin_id,
             'Value': f"{self.data.value:.8f} CPU",
             'Owner': self.data.owner_pubkey[:16] + "..." if len(self.data.owner_pubkey) > 16 else self.data.owner_pubkey,
             'Created': time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.data.created_at)),
             'Block Height': self.data.block_height,
+            'Share Index': self.data.share_index,
             'Status': 'SPENT' if self.data.is_spent else 'UNSPENT',
             'Transfers': len([h for h in self.data.history if h.get('action') == 'transfer']),
             'File': self.filepath
         }
+
+        # Add share-specific info
+        if self.data.is_block_finder:
+            info['Type'] = 'BLOCK FINDER'
+        elif self.data.is_bonus_share:
+            info['Type'] = 'BONUS SHARE'
+        else:
+            info['Type'] = 'SHARE'
+
+        if self.data.block_hash:
+            info['Block Hash'] = self.data.block_hash[:32] + "..."
+
+        return info
 
     def __repr__(self) -> str:
         status = "SPENT" if self.data.is_spent else "VALID"
