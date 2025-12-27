@@ -16,14 +16,14 @@ pip install -e .
 cpucoin wallet create mywallet
 
 # 3. Connect to the mining server and start mining
-cpucoin mine --server http://34.41.230.112:8335 --wallet mywallet
+cpucoin mine --server http://34.41.230.112:8333 --wallet mywallet
 ```
 
-**Mining Server:** `http://34.41.230.112:8335`
+**Mining Server:** `http://34.41.230.112:8333`
 
 Check server status:
 ```bash
-cpucoin server info http://34.41.230.112:8335
+cpucoin server info http://34.41.230.112:8333
 ```
 
 ---
@@ -75,10 +75,10 @@ cpucoin wallet create mywallet
 
 ```bash
 # Mine 5 shares from the official server
-cpucoin mine --server http://34.41.230.112:8335 --shares 5 --wallet mywallet
+cpucoin mine --server http://34.41.230.112:8333 --shares 5 --wallet mywallet
 
 # Mine continuously
-cpucoin mine --server http://34.41.230.112:8335 --wallet mywallet
+cpucoin mine --server http://34.41.230.112:8333 --wallet mywallet
 ```
 
 ### 3. Check Your Coins
