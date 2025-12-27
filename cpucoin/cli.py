@@ -2,8 +2,13 @@
 """
 CPUCoin Command Line Interface
 
+Block Shares Mining System:
+- Each block contains 100 shares (coinlets) worth 0.5 CPU each
+- Mine individual shares quickly, or find full blocks for bonus shares
+- Full blocks take ~15 minutes on powerful CPUs
+
 Usage:
-    cpucoin mine [--blocks=<n>] [--wallet=<name>] [--threads=<n>]
+    cpucoin mine [--shares=<n>] [--wallet=<name>] [--threads=<n>]
     cpucoin wallet create <name> [--password=<pwd>]
     cpucoin wallet info [<name>]
     cpucoin wallet list
@@ -30,7 +35,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from cpucoin.blockchain import Blockchain
 from cpucoin.wallet import Wallet, list_wallets, DEFAULT_WALLET_DIR
 from cpucoin.coin import Coin, CoinStore, DEFAULT_COIN_DIR
-from cpucoin.miner import Miner, MultiThreadedMiner, quick_mine
+from cpucoin.miner import ShareMiner, MultiThreadedShareMiner, quick_mine
 from cpucoin.node import Node
 from cpucoin import config
 
@@ -47,19 +52,19 @@ def print_header():
 ║    ╚██████╗██║     ╚██████╔╝╚██████╗╚██████╔╝██║██║ ╚████║║
 ║     ╚═════╝╚═╝      ╚═════╝  ╚═════╝ ╚═════╝ ╚═╝╚═╝  ╚═══╝║
 ║                                                           ║
-║           CPU-Minable Cryptocurrency v1.0.0               ║
-║        Fast mining • Physical coin files • Secure         ║
+║           CPU-Minable Cryptocurrency v2.0.0               ║
+║     Block Shares • Physical coins • Multi-user mining     ║
 ╚═══════════════════════════════════════════════════════════╝
     """)
 
 
 def cmd_mine(args):
-    """Mine blocks."""
+    """Mine shares (and occasionally find blocks for bonus)."""
     print_header()
 
     wallet_name = args.wallet or "default"
     password = args.password or ""
-    num_blocks = args.blocks or 0
+    num_shares = args.shares or 0
     num_threads = args.threads or 0
 
     # Load or create wallet
@@ -88,19 +93,26 @@ def cmd_mine(args):
         blockchain = Blockchain()
         print(f"📦 New blockchain created")
 
+    # Show share info
+    print(f"\n📋 Share Mining Info:")
+    print(f"   Shares per block: {config.SHARES_PER_BLOCK}")
+    print(f"   Share value: {config.SHARE_VALUE:.8f} CPU")
+    print(f"   Share difficulty: {blockchain.share_difficulty}")
+    print(f"   Block difficulty: {blockchain.block_difficulty} (bonus shares!)")
+
     # Create miner
     if num_threads > 1:
-        miner = MultiThreadedMiner(wallet, blockchain, num_threads=num_threads)
+        miner = MultiThreadedShareMiner(wallet, blockchain, num_threads=num_threads)
     else:
-        miner = Miner(wallet, blockchain)
+        miner = ShareMiner(wallet, blockchain)
 
     try:
-        if num_blocks > 0:
-            print(f"\n⛏️  Mining {num_blocks} block(s)...\n")
+        if num_shares > 0:
+            print(f"\n⛏️  Mining {num_shares} share(s)...\n")
         else:
             print(f"\n⛏️  Mining continuously (Ctrl+C to stop)...\n")
 
-        results = miner.mine_continuous(num_blocks=num_blocks, verbose=True)
+        results = miner.mine_continuous(num_shares=num_shares, verbose=True)
 
         # Save blockchain
         blockchain.save(blockchain_path)
@@ -108,9 +120,13 @@ def cmd_mine(args):
 
         # Summary
         successful = [r for r in results if r.success]
+        blocks_found = sum(1 for r in successful if r.is_block_find)
+        total_earned = sum(r.coin.value for r in successful if r.coin)
+
         print(f"\n📊 Session Summary:")
-        print(f"   Blocks mined: {len(successful)}")
-        print(f"   Total earned: {sum(r.coin.value for r in successful):.8f} CPU")
+        print(f"   Shares mined: {len(successful)}")
+        print(f"   Blocks found: {blocks_found}")
+        print(f"   Total earned: {total_earned:.8f} CPU")
         print(f"   Wallet balance: {wallet.get_balance():.8f} CPU")
 
     except KeyboardInterrupt:
@@ -259,7 +275,7 @@ def cmd_send(args):
 
 
 def cmd_coins_list(args):
-    """List all coins."""
+    """List all coins (shares)."""
     coin_store = CoinStore()
     include_spent = args.all
 
@@ -269,13 +285,22 @@ def cmd_coins_list(args):
         print("No coins found. Mine some with: cpucoin mine")
         return 0
 
-    print(f"\n💰 Coins ({len(coins)}):")
+    print(f"\n💰 Coins/Shares ({len(coins)}):")
     print("-" * 60)
     for coin in coins:
         status = "SPENT" if coin.is_spent else "VALID"
+
+        # Determine coin type
+        if coin.data.is_bonus_share:
+            coin_type = "BONUS"
+        elif coin.data.is_block_finder:
+            coin_type = "BLOCK"
+        else:
+            coin_type = "SHARE"
+
         print(f"  {coin.coin_id[:32]}...")
-        print(f"    Value: {coin.value:.8f} CPU | Status: {status}")
-        print(f"    File: {coin.filepath}")
+        print(f"    Value: {coin.value:.8f} CPU | Type: {coin_type} | Status: {status}")
+        print(f"    Block: #{coin.data.block_height} | Share: #{coin.data.share_index}")
         print()
 
     stats = coin_store.stats()
@@ -347,13 +372,25 @@ def cmd_blockchain_info(args):
     print(f"\n📦 Blockchain Information:")
     print("-" * 40)
     print(f"  Height: {blockchain.height}")
-    print(f"  Difficulty: {blockchain.difficulty}")
+    print(f"  Share difficulty: {blockchain.share_difficulty}")
+    print(f"  Block difficulty: {blockchain.block_difficulty}")
     print(f"  Block reward: {blockchain.get_block_reward():.8f} CPU")
+    print(f"  Share value: {blockchain.get_share_value():.8f} CPU")
+    print(f"  Shares per block: {config.SHARES_PER_BLOCK}")
     print(f"  Pending transactions: {len(blockchain.pending_transactions)}")
+
+    # Show current open block info if any
+    if blockchain.current_open_block:
+        block = blockchain.current_open_block
+        print(f"\n🔓 Current Open Block #{block.index}:")
+        print(f"  Shares claimed: {len(block.claimed_shares)}/{config.SHARES_PER_BLOCK}")
+        print(f"  Shares remaining: {block.shares_remaining()}")
 
     print(f"\n📋 Recent Blocks:")
     for block in blockchain.chain[-5:]:
-        print(f"  #{block.index}: {block.hash[:32]}... ({len(block.transactions)} txs)")
+        status = "CLOSED" if block.is_closed else "OPEN"
+        shares = len(block.claimed_shares) if hasattr(block, 'claimed_shares') else "N/A"
+        print(f"  #{block.index}: {block.hash[:24]}... (shares: {shares}, {status})")
 
     return 0
 
@@ -409,9 +446,9 @@ def main():
     subparsers = parser.add_subparsers(dest='command', help='Commands')
 
     # Mine command
-    mine_parser = subparsers.add_parser('mine', help='Mine blocks')
-    mine_parser.add_argument('--blocks', '-b', type=int, default=0,
-                            help='Number of blocks to mine (0 = infinite)')
+    mine_parser = subparsers.add_parser('mine', help='Mine shares (block shares system)')
+    mine_parser.add_argument('--shares', '-s', type=int, default=0,
+                            help='Number of shares to mine (0 = infinite)')
     mine_parser.add_argument('--wallet', '-w', type=str, default='default',
                             help='Wallet name to use')
     mine_parser.add_argument('--password', '-p', type=str, default=None,
