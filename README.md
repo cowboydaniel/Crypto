@@ -4,7 +4,7 @@ A CPU-minable cryptocurrency with **physical coin files** stored on your hard dr
 
 ## Start Mining Now
 
-Connect to the official CPUCoin network and start mining in minutes:
+Connect to the official CPUCoin mining server and start earning shares:
 
 ```bash
 # 1. Clone and install
@@ -15,29 +15,39 @@ pip install -e .
 # 2. Create your wallet
 cpucoin wallet create mywallet
 
-# 3. Connect to the network and start mining
-cpucoin node connect 34.41.230.112:8333
-cpucoin mine --wallet mywallet --threads 4
+# 3. Connect to the mining server and start mining
+cpucoin mine --server http://34.41.230.112:8335 --wallet mywallet
 ```
 
-**Central Server:** `34.41.230.112:8333`
-**Server API:** `http://34.41.230.112:8080/status`
+**Mining Server:** `http://34.41.230.112:8335`
 
-Check the network status anytime:
+Check server status:
 ```bash
-curl http://34.41.230.112:8080/status
+cpucoin server info http://34.41.230.112:8335
 ```
 
 ---
 
+## Block Shares System
+
+CPUCoin uses a **Block Shares** mining system:
+
+- Each block contains **100 shares** (coinlets) worth **0.5 CPU each**
+- Multiple miners can earn shares from the same block
+- Finding a **full block** (harder difficulty) awards all remaining shares as bonus
+- Share difficulty: ~30-50 seconds per share
+- Block difficulty: ~15 minutes on a 32-thread CPU
+
+This means you don't have to find an entire block alone - you earn coins for each share you find!
+
 ## Features
 
 - **CPU-Friendly Mining**: Uses Argon2 (memory-hard) algorithm that favors CPUs over GPUs/ASICs
-- **Physical Coin Files**: Each coin is stored as a `.coin` file on your disk - you can see, copy, and transfer them
-- **Fast Mining**: Optimized for quick block times (~10 seconds target)
-- **Multi-threaded**: Utilize all your CPU cores for maximum hash rate
+- **Physical Coin Files**: Each coin is stored as a `.coin` file on your disk
+- **Block Shares**: Earn partial rewards without finding full blocks
+- **Multi-User Mining**: Multiple miners work on the same shared blockchain
+- **Server-Based**: Central server ensures everyone mines the same chain
 - **Simple CLI**: Easy-to-use command line interface
-- **P2P Networking**: Connect with other nodes to sync the blockchain
 
 ## Installation
 
@@ -61,17 +71,14 @@ pip install -e .
 cpucoin wallet create mywallet
 ```
 
-### 2. Start Mining
+### 2. Start Mining (Server Mode)
 
 ```bash
-# Mine 5 blocks
-cpucoin mine --blocks 5 --wallet mywallet
+# Mine 5 shares from the official server
+cpucoin mine --server http://34.41.230.112:8335 --shares 5 --wallet mywallet
 
 # Mine continuously
-cpucoin mine --wallet mywallet
-
-# Use multiple CPU threads
-cpucoin mine --wallet mywallet --threads 4
+cpucoin mine --server http://34.41.230.112:8335 --wallet mywallet
 ```
 
 ### 3. Check Your Coins
@@ -92,29 +99,34 @@ cpucoin send <recipient_public_key> 10.0 --wallet mywallet
 
 ## Coin Files
 
-Each mined coin is stored as a physical file in `~/.cpucoin/coins/`. The files contain:
+Each mined share is stored as a physical file in `~/.cpucoin/coins/`. The files contain:
 
 - Unique coin ID
-- Value (amount of CPU)
+- Value (0.5 CPU per share)
 - Owner's public key
 - Mining proof (nonce, hash, difficulty)
+- Share index and block info
 - Full ownership history
 
 Example coin file structure:
 ```json
 {
   "coin_id": "COIN-a1b2c3d4e5f6...",
-  "value": 50.0,
+  "value": 0.5,
   "owner_pubkey": "04abc123...",
   "created_at": 1703548800,
   "block_height": 42,
+  "share_index": 7,
+  "is_block_finder": false,
+  "is_bonus_share": false,
   "mining_proof": {
     "nonce": 12345,
     "hash": "0000abc...",
-    "difficulty": 4
+    "share_difficulty": 10,
+    "block_difficulty": 17
   },
   "history": [
-    {"action": "mint", "timestamp": 1703548800, ...}
+    {"action": "share_mint", "timestamp": 1703548800, ...}
   ],
   "is_spent": false
 }
@@ -135,70 +147,52 @@ cpucoin coins import /media/usb/received_coin.coin
 ## CLI Commands
 
 ```
-cpucoin mine [--blocks N] [--wallet NAME] [--threads N]
-    Mine blocks and earn coins
+Mining:
+  cpucoin mine [--shares N] [--wallet NAME] [--server URL]
+      Mine shares and earn coins
+      --server: Connect to mining server (recommended)
+      --shares: Number of shares to mine (0 = infinite)
 
-cpucoin wallet create <name> [--password PWD]
-    Create a new wallet
+Server:
+  cpucoin server start [--port PORT]
+      Start a mining server
 
-cpucoin wallet info [name]
-    Show wallet information
+  cpucoin server info <url>
+      Show mining server information
 
-cpucoin wallet list
-    List all wallets
+Wallet:
+  cpucoin wallet create <name> [--password PWD]
+      Create a new wallet
 
-cpucoin wallet balance [name]
-    Show wallet balance
+  cpucoin wallet info [name]
+      Show wallet information
 
-cpucoin send <recipient> <amount> [--wallet NAME]
-    Send coins to another wallet
+  cpucoin wallet list
+      List all wallets
 
-cpucoin coins list [--all]
-    List coin files (--all includes spent)
+  cpucoin wallet balance [name]
+      Show wallet balance
 
-cpucoin coins info <coin_id>
-    Show detailed coin information
+Transactions:
+  cpucoin send <recipient> <amount> [--wallet NAME]
+      Send coins to another wallet
 
-cpucoin coins export <coin_id> <filepath>
-    Export a coin to a file
+Coins:
+  cpucoin coins list [--all]
+      List coin files (--all includes spent)
 
-cpucoin coins import <filepath>
-    Import a coin from a file
+  cpucoin coins info <coin_id>
+      Show detailed coin information
 
-cpucoin blockchain info
-    Show blockchain information
+  cpucoin coins export <coin_id> <filepath>
+      Export a coin to a file
 
-cpucoin node start [--port PORT]
-    Start a network node
+  cpucoin coins import <filepath>
+      Import a coin from a file
 
-cpucoin node connect <host:port>
-    Connect to a peer node
-```
-
-## Python API
-
-```python
-from cpucoin import Blockchain, Wallet, Miner, Coin
-
-# Create a wallet
-wallet = Wallet.create("mywallett")
-
-# Create blockchain
-blockchain = Blockchain()
-
-# Mine a block
-miner = Miner(wallet, blockchain)
-result = miner.mine_block(verbose=True)
-
-# The coin is automatically saved to disk
-print(f"Minted coin: {result.coin.filepath}")
-
-# Check balance
-print(f"Balance: {wallet.get_balance()} CPU")
-
-# List coins
-for coin in wallet.list_coins():
-    print(f"{coin.coin_id}: {coin.value} CPU")
+Blockchain:
+  cpucoin blockchain info
+      Show blockchain information
 ```
 
 ## Technical Details
@@ -211,30 +205,27 @@ CPUCoin uses **Argon2id** for proof-of-work, which is:
 2. **Time-hard**: Sequential memory access patterns resist parallelization
 3. **ASIC-resistant**: Memory requirements make specialized hardware impractical
 
-The mining process:
-1. Create a block header with transactions
-2. Hash with Argon2id (using previous block hash as salt)
-3. Apply SHA-256 for final hash
-4. Check if hash meets difficulty target
-5. If not, increment nonce and repeat
+### Difficulty System
 
-### Difficulty Adjustment
-
-- Target block time: 10 seconds
+- **Share Difficulty**: 10 (easier, ~30-50 sec per share)
+- **Block Difficulty**: 17 (harder, ~15 min on 32 threads)
 - Adjustment interval: Every 10 blocks
-- If blocks are too fast: Difficulty increases
-- If blocks are too slow: Difficulty decreases
+- Block finder gets all remaining unclaimed shares as bonus
 
 ### Block Reward
 
-- Initial reward: 50 CPU per block
-- Halving: Every 210,000 blocks (like Bitcoin)
+- Total reward: 50 CPU per block
+- Distributed as: 100 shares x 0.5 CPU each
+- Halving: Every 210,000 blocks
 
 ## File Locations
 
+### Miners (your laptop)
 - Wallets: `~/.cpucoin/wallets/`
 - Coins: `~/.cpucoin/coins/`
-- Blockchain: `~/.cpucoin/blockchain.json`
+
+### Server
+- Blockchain: `~/.cpucoin-server/blockchain.json`
 
 ## License
 
