@@ -349,7 +349,7 @@ class MiningServerHandler(BaseHTTPRequestHandler):
         self._send_json({'message': 'Blockchain reset', 'height': 0})
 
 
-def run_server(host: str = "0.0.0.0", port: int = 8335):
+def run_server(host: str = "0.0.0.0", port: int = 8333):
     """Run the mining server."""
     # Initialize blockchain
     get_blockchain()

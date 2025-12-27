@@ -25,7 +25,7 @@ Usage:
     cpucoin node connect <host:port>
 
 Server-based Mining (recommended for multi-user):
-    cpucoin mine --server http://your-server:8335 --shares 10
+    cpucoin mine --server http://your-server:8333 --shares 10
 """
 
 import os
@@ -456,7 +456,7 @@ def cmd_blockchain_info(args):
 
 def cmd_server_start(args):
     """Start the mining server."""
-    port = args.port or 8335
+    port = args.port or 8333
     host = args.host or "0.0.0.0"
 
     print_header()
@@ -561,7 +561,7 @@ def main():
     mine_parser.add_argument('--threads', '-t', type=int, default=1,
                             help='Number of mining threads')
     mine_parser.add_argument('--server', type=str, default=None,
-                            help='Mining server URL (e.g., http://localhost:8335)')
+                            help='Mining server URL (e.g., http://localhost:8333)')
 
     # Wallet commands
     wallet_parser = subparsers.add_parser('wallet', help='Wallet commands')
@@ -621,13 +621,13 @@ def main():
     server_sub = server_parser.add_subparsers(dest='server_cmd')
 
     server_start_parser = server_sub.add_parser('start', help='Start mining server')
-    server_start_parser.add_argument('--port', '-p', type=int, default=8335,
-                                     help='Port to listen on (default: 8335)')
+    server_start_parser.add_argument('--port', '-p', type=int, default=8333,
+                                     help='Port to listen on (default: 8333)')
     server_start_parser.add_argument('--host', type=str, default='0.0.0.0',
                                      help='Host to bind to (default: 0.0.0.0)')
 
     server_info_parser = server_sub.add_parser('info', help='Show server info')
-    server_info_parser.add_argument('url', help='Server URL (e.g., http://localhost:8335)')
+    server_info_parser.add_argument('url', help='Server URL (e.g., http://localhost:8333)')
 
     # Node commands
     node_parser = subparsers.add_parser('node', help='Network node commands')
