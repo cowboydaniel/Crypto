@@ -184,11 +184,11 @@ class Blockchain:
 
     def calculate_difficulty(self) -> int:
         """
-        Returns fixed difficulty (no adjustment).
-        """
-        return config.INITIAL_DIFFICULTY  # Always use initial difficulty
+        Calculate the next difficulty based on recent block times.
 
-        # --- Original dynamic adjustment (disabled) ---
+        Adjusts difficulty to maintain target block time by comparing
+        actual vs expected time for recent blocks.
+        """
         if len(self.chain) < config.DIFFICULTY_ADJUSTMENT_INTERVAL + 1:
             return self.difficulty
 
