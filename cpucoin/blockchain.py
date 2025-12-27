@@ -631,6 +631,10 @@ class Blockchain:
             blockchain.share_difficulty = data.get('share_difficulty', config.INITIAL_SHARE_DIFFICULTY)
             blockchain.block_difficulty = data.get('block_difficulty', config.INITIAL_BLOCK_DIFFICULTY)
 
+        # Enforce minimum difficulty from config (in case old blockchain has easy values)
+        blockchain.share_difficulty = max(blockchain.share_difficulty, config.INITIAL_SHARE_DIFFICULTY)
+        blockchain.block_difficulty = max(blockchain.block_difficulty, config.INITIAL_BLOCK_DIFFICULTY)
+
         blockchain.pending_transactions = data.get('pending_transactions', [])
 
         # Load current open block if present
