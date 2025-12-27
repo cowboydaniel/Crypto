@@ -487,7 +487,7 @@ def cmd_server_info(args):
     open_block = info.get('current_open_block')
     if open_block:
         print(f"\n🔓 Current Open Block #{open_block.get('index', 0)}:")
-        print(f"  Shares claimed: {open_block.get('shares_claimed', 0)}/{info.get('shares_per_block', 100)}")
+        print(f"  Shares claimed: {open_block.get('shares_claimed', 0)}/{info.get('shares_per_block', config.SHARES_PER_BLOCK)}")
         print(f"  Shares remaining: {open_block.get('shares_remaining', 0)}")
 
     recent = info.get('recent_blocks', [])

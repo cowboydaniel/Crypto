@@ -49,8 +49,8 @@ Response:
   "blockchain_height": 42,
   "share_difficulty": 10,
   "block_difficulty": 17,
-  "shares_per_block": 100,
-  "share_value": 0.5
+  "shares_per_block": 1000,
+  "share_value": 2.38095238
 }
 ```
 
@@ -66,8 +66,8 @@ Response:
   "previous_hash": "0000abc...",
   "share_difficulty": 10,
   "block_difficulty": 17,
-  "shares_claimed": 7,
-  "shares_remaining": 93,
+  "shares_claimed": 125,
+  "shares_remaining": 875,
   "is_closed": false,
   "header": "{...}"
 }
@@ -94,7 +94,7 @@ Response (success):
   "is_block_find": false,
   "bonus_shares": 0,
   "coin_data": {
-    "value": 0.5,
+    "value": 2.38095238,
     "block_height": 43,
     "share_index": 7,
     ...
@@ -189,7 +189,7 @@ Edit `cpucoin/config.py` to adjust:
 
 ```python
 # Block shares system
-SHARES_PER_BLOCK = 100          # Shares per block
+SHARES_PER_BLOCK = 1000         # Shares per block
 BLOCK_TIME_TARGET = 900         # 15 minutes for full block
 
 # Difficulty
@@ -198,8 +198,8 @@ INITIAL_BLOCK_DIFFICULTY = 17   # ~15 min on 32 threads
 BLOCK_DIFFICULTY_OFFSET = 7     # block_diff = share_diff + offset
 
 # Rewards
-BLOCK_REWARD = 50.0             # Total CPU per block
-SHARE_VALUE = 0.5               # CPU per share (50/100)
+BLOCK_REWARD = 2380.95238095    # Total CPU per block
+SHARE_VALUE = 2.38095238        # CPU per share (2380.95238095/1000)
 ```
 
 ## Data Storage
