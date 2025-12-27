@@ -40,6 +40,7 @@ setup(
     entry_points={
         "console_scripts": [
             "cpucoin=cpucoin.cli:main",
+            "cpucoin-server=cpucoin.coin_control_server:main",
         ],
     },
 )

@@ -1,0 +1,76 @@
+# CPUCoin Central Control Server - Systemd Service File
+#
+# Installation:
+#   1. Copy this file to /etc/systemd/system/cpucoin-server.service
+#   2. Edit the User, WorkingDirectory, and ExecStart paths
+#   3. Run: sudo systemctl daemon-reload
+#   4. Run: sudo systemctl enable cpucoin-server
+#   5. Run: sudo systemctl start cpucoin-server
+#
+# Management:
+#   - Start:   sudo systemctl start cpucoin-server
+#   - Stop:    sudo systemctl stop cpucoin-server
+#   - Restart: sudo systemctl restart cpucoin-server
+#   - Status:  sudo systemctl status cpucoin-server
+#   - Logs:    sudo journalctl -u cpucoin-server -f
+#
+
+[Unit]
+Description=CPUCoin Central Control Server
+Documentation=https://github.com/cowboydaniel/Crypto
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+# Change these to match your setup
+User=cpucoin
+Group=cpucoin
+WorkingDirectory=/opt/cpucoin
+
+# Main command - adjust paths and options as needed
+ExecStart=/opt/cpucoin/venv/bin/python -m cpucoin.coin_control_server \
+    --port 8333 \
+    --api-port 8080 \
+    --log-file /var/log/cpucoin/server.log
+
+# To enable mining, uncomment and adjust:
+# ExecStart=/opt/cpucoin/venv/bin/python -m cpucoin.coin_control_server \
+#     --port 8333 \
+#     --api-port 8080 \
+#     --mine \
+#     --wallet servernode \
+#     --threads 4 \
+#     --log-file /var/log/cpucoin/server.log
+
+# Restart policy
+Restart=always
+RestartSec=10
+
+# Resource limits
+LimitNOFILE=65535
+LimitNPROC=4096
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+
+# Allow writes to data directory
+ReadWritePaths=/var/lib/cpucoin
+ReadWritePaths=/var/log/cpucoin
+
+# Environment
+Environment=PYTHONUNBUFFERED=1
+Environment=HOME=/var/lib/cpucoin
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cpucoin-server
+
+[Install]
+WantedBy=multi-user.target
