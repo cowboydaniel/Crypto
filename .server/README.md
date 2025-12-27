@@ -8,10 +8,10 @@ This document explains how to run and manage the CPUCoin mining server.
 cd /path/to/Crypto
 
 # Start the server with nohup (runs in background, survives logout)
-nohup python -c "from cpucoin.cli import main; main()" server start --port 8335 > server.log 2>&1 &
+nohup python -c "from cpucoin.cli import main; main()" server start --port 8333 > server.log 2>&1 &
 
 # Check it's running
-curl http://localhost:8335/
+curl http://localhost:8333/
 
 # View logs
 tail -f server.log
@@ -122,7 +122,7 @@ Response (block found!):
 cd /path/to/Crypto
 
 # Start server in background
-nohup python -c "from cpucoin.cli import main; main()" server start --port 8335 > server.log 2>&1 &
+nohup python -c "from cpucoin.cli import main; main()" server start --port 8333 > server.log 2>&1 &
 
 # Save the PID for later
 echo $! > server.pid
@@ -132,7 +132,7 @@ kill $(cat server.pid)
 
 # Restart
 kill $(cat server.pid) 2>/dev/null
-nohup python -c "from cpucoin.cli import main; main()" server start --port 8335 > server.log 2>&1 &
+nohup python -c "from cpucoin.cli import main; main()" server start --port 8333 > server.log 2>&1 &
 echo $! > server.pid
 ```
 
@@ -149,7 +149,7 @@ After=network.target
 Type=simple
 User=cpucoin
 WorkingDirectory=/opt/cpucoin
-ExecStart=/usr/bin/python -c "from cpucoin.cli import main; main()" server start --port 8335
+ExecStart=/usr/bin/python -c "from cpucoin.cli import main; main()" server start --port 8333
 Restart=always
 RestartSec=10
 
@@ -179,8 +179,8 @@ FROM python:3.11-slim
 WORKDIR /app
 COPY . .
 RUN pip install -e .
-EXPOSE 8335
-CMD ["python", "-c", "from cpucoin.cli import main; main()", "server", "start", "--port", "8335"]
+EXPOSE 8333
+CMD ["python", "-c", "from cpucoin.cli import main; main()", "server", "start", "--port", "8333"]
 ```
 
 ## Configuration
@@ -215,12 +215,12 @@ Server data is stored in `~/.cpucoin-server/`:
 
 Check server status:
 ```bash
-curl http://localhost:8335/blockchain/info | jq
+curl http://localhost:8333/blockchain/info | jq
 ```
 
 Watch for new shares:
 ```bash
-watch -n 1 'curl -s http://localhost:8335/blockchain/info | jq .current_open_block'
+watch -n 1 'curl -s http://localhost:8333/blockchain/info | jq .current_open_block'
 ```
 
 ## Reset Blockchain
@@ -229,7 +229,7 @@ For testing, you can reset the entire blockchain:
 
 ```bash
 # Via API
-curl -X POST http://localhost:8335/blockchain/reset
+curl -X POST http://localhost:8333/blockchain/reset
 
 # Or delete the file
 rm ~/.cpucoin-server/blockchain.json
@@ -246,14 +246,14 @@ rm ~/.cpucoin-server/blockchain.json
 
 ### Port already in use
 ```bash
-lsof -i :8335
+lsof -i :8333
 kill <pid>
 ```
 
 ### Miners can't connect
-- Check firewall: `sudo ufw allow 8335`
-- Check server is listening: `netstat -tlnp | grep 8335`
-- Test locally: `curl http://localhost:8335/`
+- Check firewall: `sudo ufw allow 8333`
+- Check server is listening: `netstat -tlnp | grep 8333`
+- Test locally: `curl http://localhost:8333/`
 
 ### Blockchain corruption
 ```bash
